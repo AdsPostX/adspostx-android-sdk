@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="CustomDialogTheme">
+        <!-- No backgrounds, titles or window float -->
+        <item name="android:windowNoTitle">false</item>
+        <item name="android:windowIsFloating">false</item>
+    </style>
+
+
+    <style name="App.ThemeOverlay.Toolbar" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
+        <item name="toolbarStyle">@style/App.Style.Toolbar</item>
+    </style>
+
+    <style name="App.Style.Toolbar" parent="Widget.AppCompat.ActionBar">
+        <item name="titleTextColor">@color/white</item>
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="background">@color/purple_500</item>
+    </style>
+
+</resources>
