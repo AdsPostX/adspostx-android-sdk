@@ -22,10 +22,11 @@ class MainActivity : AppCompatActivity(),AdpostxDialogDismissListener {
         binding.buttonShowDialog.setOnClickListener {
             adpostxDialogFragment.show(supportFragmentManager, AdpostxDialogFragment::class.java.canonicalName)
         }
-
     }
 
     override fun dismissListener() {
         Toast.makeText(this, "Dialog Dismissed", Toast.LENGTH_SHORT).show()
     }
+
+
 }

@@ -1,21 +1,23 @@
 package com.adspostx
 
-import android.annotation.SuppressLint
+import android.app.Dialog
 import android.content.DialogInterface
+import android.net.Uri
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.webkit.WebView
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
-import com.adspostx.databinding.FragmentDialogAdpostBinding
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewCompat.WebMessageListener
+import androidx.webkit.WebViewFeature
 import com.adspostx.util.AdpostxDialogDismissListener
 import com.adspostx.util.DialogParams
+import kotlinx.android.synthetic.main.fragment_dialog_adpost.view.*
 
 
 class AdpostxDialogFragment : DialogFragment() {
 
-    private lateinit var binding: FragmentDialogAdpostBinding
     var dialogParams: DialogParams? = null
     var updatedUrl = ""
 
@@ -42,48 +44,64 @@ class AdpostxDialogFragment : DialogFragment() {
         dialogParams = arguments?.getSerializable(KEY_PARAMS) as DialogParams?
 
         if (dialogParams?.token.isNullOrEmpty().not()) {
-            updatedUrl = "${dialogParams?.url}?from=${dialogParams?.token}"
+            updatedUrl = "${dialogParams?.url}/?from=${dialogParams?.token}"
         }
 
         setMenuVisibility(true)
         setStyle(STYLE_NO_TITLE, R.style.CustomDialogTheme)
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        binding = FragmentDialogAdpostBinding.inflate(inflater, container, false)
-        return binding.root
-    }
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        return activity?.let {
+            val builder = AlertDialog.Builder(it)
+            // Inflate and set the layout for the dialog
+            // Pass null as the parent view because its going in the dialog layout
+            val dialogLayout = layoutInflater.inflate(R.layout.fragment_dialog_adpost, null);
+            builder.setView(dialogLayout)
 
-    @SuppressLint("SetJavaScriptEnabled")
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
 
-        binding.webView.webViewClient = WebViewClient()
-        binding.webView.settings.javaScriptEnabled = true
-        binding.webView.loadUrl(updatedUrl)
-
-        binding.toolbar.title = dialogParams?.title
-        binding.toolbar.setOnMenuItemClickListener {
-            if (it.itemId == R.id.buttonClose) {
-                dialog?.dismiss()
+            dialogLayout.webView.webViewClient = WebViewClient { isLoading ->
+                if (isLoading.not()) {
+                    dialogLayout.progressBar.visibility = View.GONE
+                }
             }
-            return@setOnMenuItemClickListener true
-        }
+            dialogLayout.webView.settings.javaScriptEnabled = true
+            dialogLayout.webView.clearHistory()
+            dialogLayout.webView.clearFormData()
+            dialogLayout.webView.clearCache(true)
+            dialogLayout.webView.loadUrl(updatedUrl)
+
+            val webMessageListener =
+                WebMessageListener { view, message, sourceOrigin, isMainFrame, replyProxy ->
+                    // do something about view, message, sourceOrigin and isMainFrame.
+                    replyProxy.postMessage("Got it!")
+                    adpostxDialogDismissListener?.dismissListener()
+                    dismiss()
+                }
+
+
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+                WebViewCompat.addWebMessageListener(
+                    dialogLayout.webView,
+                    "myObject",
+                    setOf("${dialogParams?.url}"),
+                    webMessageListener
+                );
+            }
+            builder.create()
+        } ?: throw IllegalStateException("Activity cannot be null")
     }
 
-    inner class WebViewClient : android.webkit.WebViewClient() {
+    inner class WebViewClient(var callback: (isLoading: Boolean) -> Unit) :
+        android.webkit.WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
             view.loadUrl(url)
-            return false
+            return true
         }
 
         override fun onPageFinished(view: WebView, url: String) {
+            callback(false)
             super.onPageFinished(view, url)
-            binding.progressBar.visibility = View.GONE
         }
     }
 
